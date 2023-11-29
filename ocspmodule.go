@@ -20,37 +20,38 @@ type Ocspmodule struct {
 
 // CreateOCSPRequest creates an OCSP request using the given certificate and issuer certificate paths where the PEM encoded certs are placed into.
 // this does not work with "exotic" ECC keys like brainpool
-func (o *Ocspmodule) CreateRequest(certPath, issuerCertPath, hashAlgorithm string) ([]byte, error) {
+func (o *Ocspmodule) CreateRequest(certPath, issuerCertPath, hashAlgorithm string) ([]byte, string, error) {
+	var ocspAIA = ""
 	// Load certificate and issuer certificate
 	certPEM, err := os.ReadFile(certPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read certificate: %w", err)
+		return nil, ocspAIA, fmt.Errorf("failed to read certificate: %w", err)
 	}
 
 	issuerCertPEM, err := os.ReadFile(issuerCertPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read issuer certificate: %w", err)
+		return nil, ocspAIA, fmt.Errorf("failed to read issuer certificate: %w", err)
 	}
 
 	// Parse certificate and issuer certificate
 	certBlock, _ := pem.Decode(certPEM)
 	if certBlock == nil {
-		return nil, fmt.Errorf("failed to decode PEM block containing certificate")
+		return nil, ocspAIA, fmt.Errorf("failed to decode PEM block containing certificate")
 	}
 
 	cert, err := x509.ParseCertificate(certBlock.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+		return nil, ocspAIA, fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
 	issuerCertBlock, _ := pem.Decode(issuerCertPEM)
 	if issuerCertBlock == nil {
-		return nil, fmt.Errorf("failed to decode PEM block containing issuer certificate")
+		return nil, ocspAIA, fmt.Errorf("failed to decode PEM block containing issuer certificate")
 	}
 
 	issuerCert, err := x509.ParseCertificate(issuerCertBlock.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse issuer certificate: %w", err)
+		return nil, ocspAIA, fmt.Errorf("failed to parse issuer certificate: %w", err)
 	}
 
 	// Determine hash algorithm
@@ -61,7 +62,7 @@ func (o *Ocspmodule) CreateRequest(certPath, issuerCertPath, hashAlgorithm strin
 	case "SHA1":
 		hash = crypto.SHA1
 	default:
-		return nil, fmt.Errorf("unsupported hash algorithm: %s", hashAlgorithm)
+		return nil, ocspAIA, fmt.Errorf("unsupported hash algorithm: %s", hashAlgorithm)
 	}
 
 	// Create OCSP request
@@ -69,10 +70,18 @@ func (o *Ocspmodule) CreateRequest(certPath, issuerCertPath, hashAlgorithm strin
 		Hash: hash,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create OCSP request: %w", err)
+		return nil, ocspAIA, fmt.Errorf("failed to create OCSP request: %w", err)
 	}
 
-	return ocspRequest, nil
+	// extrac OCSP uri from cert
+	if len(cert.OCSPServer) > 0 {
+		ocspAIA = cert.OCSPServer[0]
+	}
+	if ocspAIA == "" {
+		return nil, ocspAIA, fmt.Errorf("failed to get OCSP uri from certificate", err)
+	}
+
+	return ocspRequest, ocspAIA, nil
 }
 
 // CheckOCSPResponse checks the OCSP response.
