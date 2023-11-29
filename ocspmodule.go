@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nikosn/xk6-ocsp/ocspcustom"
+	"github.com/nikosn/xk6-ocsp/ocsp"
 
 	"go.k6.io/k6/js/modules"
 )
@@ -67,7 +67,7 @@ func (o *Ocspmodule) CreateRequest(certPath, issuerCertPath, hashAlgorithm strin
 	}
 
 	// Create OCSP request
-	ocspRequest, err := ocspcustom.CreateRequest(cert, issuerCert, &ocspcustom.RequestOptions{
+	ocspRequest, err := ocsp.CreateRequest(cert, issuerCert, &ocsp.RequestOptions{
 		Hash: hash,
 	})
 	if err != nil {
@@ -89,7 +89,7 @@ func (o *Ocspmodule) CreateRequest(certPath, issuerCertPath, hashAlgorithm strin
 // signature verification fails in case custom ECC curves like brainpool are used. RSAPSS signatures aren't supported either.
 // to workaround this set verifySignature to false
 func (o *Ocspmodule) CheckResponse(ocspResponseBytes []byte, verifySignature bool) (string, error) {
-	ocspResponse, err := ocspcustom.ParseResponse(ocspResponseBytes, nil, verifySignature)
+	ocspResponse, err := ocsp.ParseResponse(ocspResponseBytes, nil, verifySignature)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse OCSP response: %w", err)
 	}
@@ -97,11 +97,11 @@ func (o *Ocspmodule) CheckResponse(ocspResponseBytes []byte, verifySignature boo
 	// Check the validity of the OCSP response
 	status := ocspResponse.Status
 	switch status {
-	case ocspcustom.Good:
+	case ocsp.Good:
 		return "Good", nil
-	case ocspcustom.Revoked:
+	case ocsp.Revoked:
 		return "Revoked", nil
-	case ocspcustom.Unknown:
+	case ocsp.Unknown:
 		return "Unknown", nil
 	default:
 		return fmt.Sprintf("OCSP error status code: %v", status), nil

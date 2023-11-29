@@ -8,7 +8,7 @@
 
 // slighlty enhanced for the ocspmodule
 
-package ocspcustom
+package ocsp
 
 import (
 	"crypto"
