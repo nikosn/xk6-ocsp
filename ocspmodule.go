@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nikosn/xk6-ocsp/ocsp"
+	"github.com/nikosn/xk6-ocsp/ocspcustom"
 
 	"go.k6.io/k6/js/modules"
 )
