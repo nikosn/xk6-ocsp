@@ -3,10 +3,24 @@ k6 extension to test OCSP responders
 
 Feel free to send PRs, as this does not support brainpool curves at all and RSASSAPSS for OCSP signatures.
 
-# Setup
-Just clone this repository and
-1. `go install go.k6.io/xk6/cmd/xk6@latest`
-2. `xk6 build --with xk6-ocsp=. --output k6-ocsp-check`
+## Build
 
-# Usage
-Check the sample directory for a k6 script.
+To build a `k6` binary with this extension, first ensure you have the prerequisites:
+
+- [Go toolchain](https://go101.org/article/go-toolchain.html)
+- Git
+
+Then:
+
+1. Install `xk6`:
+  ```bash
+  $ go install go.k6.io/xk6/cmd/xk6@latest
+  ```
+
+2. Build the binary:
+  ```bash
+  $ xk6 build --with github.com/nikosn/xk6-ocsp@latest
+  ```
+
+## Usage
+Check the sample directory for sample k6 scripts.

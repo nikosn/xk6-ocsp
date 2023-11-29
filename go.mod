@@ -1,4 +1,4 @@
-module xk6-ocsp
+module github.com/nikosn/xk6-ocsp
 
 go 1.21.4
 
