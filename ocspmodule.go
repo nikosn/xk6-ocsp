@@ -6,7 +6,8 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
-	"xk6-ocsp/ocsp"
+
+	"github.com/nikosn/xk6-ocsp/ocsp"
 
 	"go.k6.io/k6/js/modules"
 )
