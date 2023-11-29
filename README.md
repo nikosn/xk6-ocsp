@@ -19,7 +19,11 @@ Then:
 
 2. Build the binary:
   ```bash
-  $ xk6 build --with github.com/nikosn/xk6-ocsp@latest
+  $ xk6 build --with github.com/nikosn/xk6-ocsp@latest --output k6-ocsp-check
+  ```
+in case of problems try
+  ```bash
+  $ GOWORK=off xk6 build --with github.com/nikosn/xk6-ocsp@latest --output k6-ocsp-check
   ```
 
 ## Usage
