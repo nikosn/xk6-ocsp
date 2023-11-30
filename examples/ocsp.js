@@ -37,23 +37,20 @@ export let options = {
             threshold: 'count<1',
             abortOnFail: true
         }]
-    },
-    //ocsp: {
-    //    certPath: __ENV.CERT_PATH || './path/to/certificate.pem',
-    //    issuerCertPath: __ENV.ISSUER_CERT_PATH || './path/to/issuer_certificate.pem',
-    //    hashAlgorithm: __ENV.HASH_ALGORITHM || 'SHA1'
-    //},
+    }
 };
 const abortMetric = new Counter('fatal_errors');
 
 export default function() {
-    //const ocspRequest = ocspmodule.createRequest(options.ocsp.certPath, options.ocsp.issuerCertPath, options.ocsp.hashAlgorithm);
     var endpointURL = `${__ENV.ENDPOINT_URL}`;
     if (endpointURL === "undefined" || endpointURL === null || endpointURL === "") {
         abortMetric.add(1);
         sleep(1);
         fail(`ENDPOINT_URL has to be specified. (Currently set to '${endpointURL}')`)
     }
+    check(endpointURL, {
+        ['OCSP responder URL: ' + endpointURL]: (endpointURL) => endpointURL != null
+    });
 
     var params = {
         headers: {
@@ -72,6 +69,9 @@ export default function() {
         ErrorCount.add(1);
         ErrorRate.add(true);
     }
+    check(response, {
+        'Content-Type is application/ocsp-response': (response) => response.headers['Content-Type'] === 'application/ocsp-response',
+    });
     const validOcsp = check(ocspmodule.checkResponse(response.body, false), {
        'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
     });

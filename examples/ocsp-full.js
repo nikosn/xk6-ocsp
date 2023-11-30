@@ -70,7 +70,7 @@ export default function() {
     var params = {
         headers: {
             'Content-Type': 'application/ocsp-request',
-	    'Accept': 'application/ocsp-response'
+	        'Accept': 'application/ocsp-response'
         },
         responseType: "binary"
     };
@@ -84,6 +84,9 @@ export default function() {
         ErrorCount.add(1);
         ErrorRate.add(true);
     }
+    check(response, {
+        'Content-Type is application/ocsp-response': (response) => response.headers['Content-Type'] === 'application/ocsp-response',
+    });
     const validOcsp = check(ocspmodule.checkResponse(response.body, true), {
        'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
     });

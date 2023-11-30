@@ -1,7 +1,9 @@
 # xk6-ocsp
-k6 extension to test OCSP responders
+A [k6](https://k6.io) extension to test [OCSP](https://datatracker.ietf.org/doc/html/rfc6960) responders.
 
-Feel free to send PRs, as this does not support brainpool curves at all and RSASSAPSS for OCSP signatures.
+Feel free to send PRs, current limitations:
+- no support for "exotic" ECC curves (e.g. brainpool) in certificates
+- RSASSAPSS is not supported for OCSP signatures
 
 ## Build
 
@@ -27,4 +29,23 @@ in case of problems try
   ```
 
 ## Usage
-Check the sample directory for sample k6 scripts.
+Check the examples directory for sample k6 scripts.
+
+To import the ocsp module
+```JavaScript
+import ocspmodule from 'k6/x/ocsp';
+```
+
+### CreateRequest
+```go
+ocspmodule.CreateRequest(certPath string, issuerCertPath string, hashAlgorithm string) ([]byte, string, error)
+```
+CreateOCSPRequest creates an OCSP request using the given certificate and issuer certificate paths where the PEM encoded certs are placed into. This does not work with "exotic" ECC keys like brainpool.  
+hashAlgorithm can be SHA1 or SHA256.
+
+### CheckResponse
+```go
+ocspmodule.CheckResponse(ocspResponseBytes []byte, verifySignature bool) (string, error)
+```
+CheckOCSPResponse checks the OCSP response. Signature verification fails in case custom ECC curves like brainpool are used. RSAPSS signatures aren't supported either.  
+To workaround this set verifySignature to false.
