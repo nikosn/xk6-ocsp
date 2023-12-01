@@ -4,6 +4,7 @@ A [k6](https://k6.io) extension to test [OCSP](https://datatracker.ietf.org/doc/
 Feel free to send PRs, current limitations:
 - no support for "exotic" ECC curves (e.g. brainpool) in certificates
 - RSASSAPSS is not supported for OCSP signatures
+To workaround these limitations see the documentation in the examples directory.
 
 ## Build
 
