@@ -8,7 +8,7 @@ import {
     Counter,
     Rate
 } from 'k6/metrics';
-import encoding from 'k6/encoding';
+import { describe} from 'https://jslib.k6.io/k6chaijs/4.3.4.3/index.js';
 import ocspmodule from 'k6/x/ocsp';
 
 let ErrorCount = new Counter("errors");
@@ -41,7 +41,7 @@ export let options = {
 };
 const abortMetric = new Counter('fatal_errors');
 
-export default function() {
+export default function () {
     const certPath = `${__ENV.CERT_PATH}`;
     const issuerCertPath = `${__ENV.ISSUER_CERT_PATH}`;
     const hashAlgorithm = `${__ENV.HASH_ALGORITHM}`;
@@ -56,42 +56,50 @@ export default function() {
         ['hashAlgorithm: ' + hashAlgorithm]: (hashAlgorithm) => hashAlgorithm != null
     });
 
-    const [ocspRequest, uri] = ocspmodule.createRequest(certPath, issuerCertPath, hashAlgorithm);
-    var endpointURL = uri;
-    if (endpointURL === "undefined" || endpointURL === null || endpointURL === "") {
-        abortMetric.add(1);
-        sleep(1);
-        fail(`ENDPOINT_URL has to be specified. (Currently set to '${endpointURL}')`)
-    }
-    check(endpointURL, {
-        ['OCSP responder: ' + endpointURL]: (endpointURL) => endpointURL != null
-    });
+    describe('Creating OCSP request and calling OCSP responder', () => {
+        const [ocspRequest, uri] = ocspmodule.createRequest(certPath, issuerCertPath, hashAlgorithm);
 
-    var params = {
-        headers: {
-            'Content-Type': 'application/ocsp-request',
-	        'Accept': 'application/ocsp-response'
-        },
-        responseType: "binary"
-    };
-    let response = http.post(endpointURL, ocspRequest, params);
 
-    const success = check(response, {
-        'response time <= 1000ms': (r) => r.timings.duration <= 1000,
-        'status code = http 200': (r) => r.status === 200,
-    });
-    if (!success) {
-        ErrorCount.add(1);
-        ErrorRate.add(true);
-    }
-    check(response, {
-        'Content-Type is application/ocsp-response': (response) => response.headers['Content-Type'] === 'application/ocsp-response',
-    });
-    const validOcsp = check(ocspmodule.checkResponse(response.body, true), {
-       'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
-    });
-    if (!validOcsp) {
-        ErrorCount.add(1);
-        ErrorRate.add(true);
-    }
+        const endpointURL = uri;
+        if (endpointURL === "undefined" || endpointURL === null || endpointURL === "") {
+            abortMetric.add(1);
+            sleep(1);
+            fail(`ENDPOINT_URL has to be specified. (Currently set to '${endpointURL}')`)
+        }
+        check(endpointURL, {
+            ['OCSP responder: ' + endpointURL]: (endpointURL) => endpointURL != null
+        });
+
+        const params = {
+            headers: {
+                'Content-Type': 'application/ocsp-request',
+                'Accept': 'application/ocsp-response'
+            },
+            responseType: "binary"
+        };
+        const response = http.post(endpointURL, ocspRequest, params);
+
+        const success = check(response, {
+            'response time <= 1000ms': (r) => r.timings.duration <= 1000,
+            'status code = http 200': (r) => r.status === 200,
+        });
+        if (!success) {
+            ErrorCount.add(1);
+            ErrorRate.add(true);
+        }
+        check(response, {
+            'Content-Type is application/ocsp-response': (response) => response.headers['Content-Type'] === 'application/ocsp-response',
+        });
+
+        describe('Checking OCSP response', () => {
+            const ocspresponse = ocspmodule.checkResponse(response.body, true);
+            const validOcsp = check(ocspresponse, {
+                'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
+            });
+            if (!validOcsp) {
+                ErrorCount.add(1);
+                ErrorRate.add(true);
+            }
+        })
+    })
 }

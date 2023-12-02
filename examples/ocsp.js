@@ -8,7 +8,7 @@ import {
     Counter,
     Rate
 } from 'k6/metrics';
-import encoding from 'k6/encoding';
+import { describe} from 'https://jslib.k6.io/k6chaijs/4.3.4.3/index.js';
 import ocspmodule from 'k6/x/ocsp';
 
 let ErrorCount = new Counter("errors");
@@ -41,8 +41,8 @@ export let options = {
 };
 const abortMetric = new Counter('fatal_errors');
 
-export default function() {
-    var endpointURL = `${__ENV.ENDPOINT_URL}`;
+export default function () {
+    let endpointURL = `${__ENV.ENDPOINT_URL}`;
     if (endpointURL === "undefined" || endpointURL === null || endpointURL === "") {
         abortMetric.add(1);
         sleep(1);
@@ -52,10 +52,10 @@ export default function() {
         ['OCSP responder URL: ' + endpointURL]: (endpointURL) => endpointURL != null
     });
 
-    var params = {
+    let params = {
         headers: {
             'Content-Type': 'application/ocsp-request',
-	    'Accept': 'application/ocsp-response'
+            'Accept': 'application/ocsp-response'
         },
         responseType: "binary"
     };
@@ -69,14 +69,17 @@ export default function() {
         ErrorCount.add(1);
         ErrorRate.add(true);
     }
-    check(response, {
-        'Content-Type is application/ocsp-response': (response) => response.headers['Content-Type'] === 'application/ocsp-response',
-    });
-    const validOcsp = check(ocspmodule.checkResponse(response.body, false), {
-       'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
-    });
-    if (!validOcsp) {
-        ErrorCount.add(1);
-        ErrorRate.add(true);
-    }
+
+    describe('Checking OCSP response', () => {
+        check(response, {
+            'Content-Type is application/ocsp-response': (response) => response.headers['Content-Type'] === 'application/ocsp-response',
+        });
+        const validOcsp = check(ocspmodule.checkResponse(response.body, false), {
+            'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
+        });
+        if (!validOcsp) {
+            ErrorCount.add(1);
+            ErrorRate.add(true);
+        }
+    })
 }
