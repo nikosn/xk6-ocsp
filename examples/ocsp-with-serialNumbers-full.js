@@ -4,11 +4,13 @@ import {
     fail,
     sleep
 } from 'k6';
+import { SharedArray } from 'k6/data';
 import {
     Counter,
     Rate
 } from 'k6/metrics';
-import { describe} from 'https://jslib.k6.io/k6chaijs/4.3.4.3/index.js';
+import { describe } from 'https://jslib.k6.io/k6chaijs/4.3.4.3/index.js';
+import { randomItem } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 import ocspmodule from 'k6/x/ocsp';
 
 let ErrorCount = new Counter("errors");
@@ -41,13 +43,20 @@ export let options = {
 };
 const abortMetric = new Counter('fatal_errors');
 
+// load the hex serialNumbers from file
+const serialNumbers = new SharedArray('serialNumbers', function () {
+    const f = open(`${__ENV.HEX_SERIALNUMBERS_FILE_PATH}`).split(/\r?\n/);
+    f.pop();
+    return f;
+});
+
 export default function () {
-    const certPath = `${__ENV.CERT_PATH}`;
+    const endpointURL = `${__ENV.ENDPOINT_URL}`;
     const issuerCertPath = `${__ENV.ISSUER_CERT_PATH}`;
     const hashAlgorithm = `${__ENV.HASH_ALGORITHM}`;
 
-    check(certPath, {
-        ['certificate to check: ' + certPath]: (certPath) => certPath != null
+    check(endpointURL, {
+        ['OCSP responder: ' + endpointURL]: (endpointURL) => endpointURL != null
     });
     check(issuerCertPath, {
         ['issuer certificate: ' + issuerCertPath]: (issuerCertPath) => issuerCertPath != null
@@ -55,23 +64,16 @@ export default function () {
     check(hashAlgorithm, {
         ['hashAlgorithm: ' + hashAlgorithm]: (hashAlgorithm) => hashAlgorithm != null
     });
+    const serialNumber = randomItem(serialNumbers);
+    console.log(serialNumber);
 
     describe('Creating OCSP request and calling OCSP responder', () => {
-        const[serialNumber, uri] = ocspmodule.extractSerialNumberAndOCSPURIFromCert(certPath)     
-        const ocspRequest = ocspmodule.createRequest(serialNumber, issuerCertPath, hashAlgorithm);
-
-        const endpointURL = uri;
         if (endpointURL === "undefined" || endpointURL === null || endpointURL === "") {
             abortMetric.add(1);
             sleep(1);
             fail(`ENDPOINT_URL has to be specified. (Currently set to '${endpointURL}')`)
         }
-        check(serialNumber, {
-            ['serialNumber: ' + serialNumber]: (serialNumber) => serialNumber != null
-        });
-        check(endpointURL, {
-            ['OCSP responder: ' + endpointURL]: (endpointURL) => endpointURL != null
-        });
+        const ocspRequest = ocspmodule.createRequest(serialNumber, issuerCertPath, hashAlgorithm);
 
         const params = {
             headers: {
@@ -96,6 +98,7 @@ export default function () {
 
         describe('Checking OCSP response', () => {
             const ocspresponse = ocspmodule.checkResponse(response.body, true);
+            console.log(ocspresponse);
             const validOcsp = check(ocspresponse, {
                 'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
             });

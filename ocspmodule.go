@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"math/big"
 	"os"
 
 	"github.com/nikosn/xk6-ocsp/ocsp"
@@ -19,41 +20,55 @@ func init() {
 type Ocspmodule struct {
 }
 
-// CreateOCSPRequest creates an OCSP request using the given certificate and issuer certificate paths where the PEM encoded certs are placed into.
+// ExtractSerialNumberAndOCSPURIFromCert extracts the serialNumber and OCSP URI from a PEM encoded certificate
+// the serialNumber is returned as HEX string
 // this does not work with "exotic" ECC keys like brainpool
-func (o *Ocspmodule) CreateRequest(certPath, issuerCertPath, hashAlgorithm string) ([]byte, string, error) {
+func (o *Ocspmodule) ExtractSerialNumberAndOCSPURIFromCert(certPath string) (string, string, error) {
 	var ocspAIA = ""
-	// Load certificate and issuer certificate
+	var serialNumber = ""
 	certPEM, err := os.ReadFile(certPath)
 	if err != nil {
-		return nil, ocspAIA, fmt.Errorf("failed to read certificate: %w", err)
+		return serialNumber, ocspAIA, fmt.Errorf("failed to read certificate: %w", err)
 	}
+	certBlock, _ := pem.Decode(certPEM)
+	if certBlock == nil {
+		return serialNumber, ocspAIA, fmt.Errorf("failed to decode PEM block containing certificate")
+	}
+	cert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		return serialNumber, ocspAIA, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+	if len(cert.OCSPServer) > 0 {
+		ocspAIA = cert.OCSPServer[0]
+	}
+	if ocspAIA == "" {
+		return serialNumber, ocspAIA, fmt.Errorf("failed to get OCSP uri from certificate", err)
+	}
+	return cert.SerialNumber.Text(16), ocspAIA, nil
+}
+
+// CreateOCSPRequest creates an OCSP request using the given hex serialNumber and issuer certificate path where the PEM encoded issuer certificate is placed into.
+// this does not work with "exotic" ECC keys like brainpool
+func (o *Ocspmodule) CreateRequest(hexSerialNumber, issuerCertPath, hashAlgorithm string) ([]byte, error) {
 
 	issuerCertPEM, err := os.ReadFile(issuerCertPath)
 	if err != nil {
-		return nil, ocspAIA, fmt.Errorf("failed to read issuer certificate: %w", err)
-	}
-
-	// Parse certificate and issuer certificate
-	certBlock, _ := pem.Decode(certPEM)
-	if certBlock == nil {
-		return nil, ocspAIA, fmt.Errorf("failed to decode PEM block containing certificate")
-	}
-
-	cert, err := x509.ParseCertificate(certBlock.Bytes)
-	if err != nil {
-		return nil, ocspAIA, fmt.Errorf("failed to parse certificate: %w", err)
+		return nil, fmt.Errorf("failed to read issuer certificate: %w", err)
 	}
 
 	issuerCertBlock, _ := pem.Decode(issuerCertPEM)
 	if issuerCertBlock == nil {
-		return nil, ocspAIA, fmt.Errorf("failed to decode PEM block containing issuer certificate")
+		return nil, fmt.Errorf("failed to decode PEM block containing issuer certificate")
 	}
 
 	issuerCert, err := x509.ParseCertificate(issuerCertBlock.Bytes)
 	if err != nil {
-		return nil, ocspAIA, fmt.Errorf("failed to parse issuer certificate: %w", err)
+		return nil, fmt.Errorf("failed to parse issuer certificate: %w", err)
 	}
+
+	// hexSerialNumber to big.init
+	serialNumber := new(big.Int)
+	serialNumber.SetString(hexSerialNumber, 16)
 
 	// Determine hash algorithm
 	var hash crypto.Hash
@@ -63,26 +78,18 @@ func (o *Ocspmodule) CreateRequest(certPath, issuerCertPath, hashAlgorithm strin
 	case "SHA1":
 		hash = crypto.SHA1
 	default:
-		return nil, ocspAIA, fmt.Errorf("unsupported hash algorithm: %s", hashAlgorithm)
+		return nil, fmt.Errorf("unsupported hash algorithm: %s", hashAlgorithm)
 	}
 
 	// Create OCSP request
-	ocspRequest, err := ocsp.CreateRequest(cert, issuerCert, &ocsp.RequestOptions{
+	ocspRequest, err := ocsp.CreateRequest(serialNumber, issuerCert, &ocsp.RequestOptions{
 		Hash: hash,
 	})
 	if err != nil {
-		return nil, ocspAIA, fmt.Errorf("failed to create OCSP request: %w", err)
+		return nil, fmt.Errorf("failed to create OCSP request: %w", err)
 	}
 
-	// extrac OCSP uri from cert
-	if len(cert.OCSPServer) > 0 {
-		ocspAIA = cert.OCSPServer[0]
-	}
-	if ocspAIA == "" {
-		return nil, ocspAIA, fmt.Errorf("failed to get OCSP uri from certificate", err)
-	}
-
-	return ocspRequest, ocspAIA, nil
+	return ocspRequest, nil
 }
 
 // CheckOCSPResponse checks the OCSP response.

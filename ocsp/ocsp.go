@@ -628,9 +628,9 @@ func (opts *RequestOptions) hash() crypto.Hash {
 	return opts.Hash
 }
 
-// CreateRequest returns a DER-encoded, OCSP request for the status of cert. If
+// CreateRequest returns a DER-encoded, OCSP request for the status of the serialNumber. If
 // opts is nil then sensible defaults are used.
-func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte, error) {
+func CreateRequest(serialNumber *big.Int, issuer *x509.Certificate, opts *RequestOptions) ([]byte, error) {
 	hashFunc := opts.hash()
 
 	// OCSP seems to be the only place where these raw hash identifiers are
@@ -665,7 +665,7 @@ func CreateRequest(cert, issuer *x509.Certificate, opts *RequestOptions) ([]byte
 		HashAlgorithm:  hashFunc,
 		IssuerNameHash: issuerNameHash,
 		IssuerKeyHash:  issuerKeyHash,
-		SerialNumber:   cert.SerialNumber,
+		SerialNumber:   serialNumber,
 	}
 	return req.Marshal()
 }
