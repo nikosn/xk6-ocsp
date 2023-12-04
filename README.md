@@ -40,9 +40,10 @@ import ocspmodule from 'k6/x/ocsp';
 
 ### CreateRequest
 ```go
-ocspmodule.CreateRequest(certPath string, issuerCertPath string, hashAlgorithm string) ([]byte, string, error)
+ocspmodule.CreateRequest(hexSerialNumber string, issuerCertPath string, hashAlgorithm string) ([]byte, string, error)
 ```
-CreateOCSPRequest creates an OCSP request using the given certificate and issuer certificate paths where the PEM encoded certs are placed into. This does not work with "exotic" ECC keys like brainpool.  
+CreateOCSPRequest creates an OCSP request using the given hex serialNumber and issuer certificate path where the PEM encoded issuer certificate is placed into.
+this does not work with "exotic" ECC keys like brainpool  
 hashAlgorithm can be SHA1 or SHA256.
 
 ### CheckResponse
