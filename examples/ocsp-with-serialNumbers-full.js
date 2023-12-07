@@ -22,7 +22,7 @@ export let options = {
             executor: 'constant-arrival-rate',
 
             // 50 iterations per second
-            rate: 50,
+            rate: 500,
             timeUnit: '1s',
 
             // for how long do you want the scenario to run
@@ -65,7 +65,7 @@ export default function () {
         ['hashAlgorithm: ' + hashAlgorithm]: (hashAlgorithm) => hashAlgorithm != null
     });
     const serialNumber = randomItem(serialNumbers);
-    console.log(serialNumber);
+    //console.log(serialNumber);
 
     describe('Creating OCSP request and calling OCSP responder', () => {
         if (endpointURL === "undefined" || endpointURL === null || endpointURL === "") {
@@ -98,7 +98,7 @@ export default function () {
 
         describe('Checking OCSP response', () => {
             const ocspresponse = ocspmodule.checkResponse(response.body, true);
-            console.log(ocspresponse);
+            //console.log(ocspresponse);
             const validOcsp = check(ocspresponse, {
                 'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
             });

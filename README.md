@@ -38,6 +38,13 @@ To import the ocsp module
 import ocspmodule from 'k6/x/ocsp';
 ```
 
+### ExtractSerialNumberAndOCSPURIFromCert
+```go
+ocspmodule.ExtractSerialNumberAndOCSPURIFromCert(certPath string) (string, string, error)
+```
+ExtractSerialNumberAndOCSPURIFromCert extracts the serialNumber and OCSP URI from a PEM encoded certificate
+The serialNumber is returned as HEX string. This does not work with "exotic" ECC keys like brainpool.
+
 ### CreateRequest
 ```go
 ocspmodule.CreateRequest(hexSerialNumber string, issuerCertPath string, hashAlgorithm string) ([]byte, string, error)
