@@ -65,7 +65,6 @@ export default function () {
         ['hashAlgorithm: ' + hashAlgorithm]: (hashAlgorithm) => hashAlgorithm != null
     });
     const serialNumber = randomItem(serialNumbers);
-    //console.log(serialNumber);
 
     describe('Creating OCSP request and calling OCSP responder', () => {
         if (endpointURL === "undefined" || endpointURL === null || endpointURL === "") {
@@ -98,7 +97,6 @@ export default function () {
 
         describe('Checking OCSP response', () => {
             const ocspresponse = ocspmodule.checkResponse(response.body, true);
-            //console.log(ocspresponse);
             const validOcsp = check(ocspresponse, {
                 'OCSP status is Good, Revoked or Unknown': (value) => value === 'Good' || value === 'Revoked' || value === 'Unknown',
             });

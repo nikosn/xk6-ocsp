@@ -32,5 +32,5 @@ $ export HASH_ALGORITHM=SHA1
 Instead of SHA1, SHA256 can also be defined as HASH_ALGORITHM.  
 The implementation will use a random selected serialnumber from the provided list in each iteration to create the OCSP request.
 ```bash
-$ k6-ocsp-check run ocsp-full.js
+$ k6-ocsp-check run ocsp-with-serialNumbers-full.js
 ```
