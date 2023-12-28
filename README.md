@@ -50,8 +50,7 @@ The serialNumber is returned as HEX string. This does not work with "exotic" ECC
 ocspmodule.CreateRequest(hexSerialNumber string, issuerCertPath string, hashAlgorithm string) ([]byte, string, error)
 ```
 CreateOCSPRequest creates an OCSP request using the given hex serialNumber and issuer certificate path where the PEM encoded issuer certificate is placed into.
-this does not work with "exotic" ECC keys like brainpool  
-hashAlgorithm can be SHA1 or SHA256.
+This does not work with "exotic" ECC keys like brainpool. hashAlgorithm can be SHA1 or SHA256.
 
 ### CheckResponse
 ```go
